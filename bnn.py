@@ -231,7 +231,7 @@ class BNN(torch.nn.Module):
         return
 
     def load(self, fname, device):
-        """Load model state_dict from fname onto given torch device."""
+        """Load model state_dict from fname onto given torch.device."""
         state_dict = torch.load(fname, map_location=device)
         self.load_state_dict(state_dict)
         return
