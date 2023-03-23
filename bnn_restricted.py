@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-SUMMARY.
+Bayesian neural network.
 
-Created: MONTH YEAR
+Created: March 2022
 Author: A. P. Naik
 """
 import numpy as np
 import torch
-from .blinear_full import BLinearFull
+from .blinear_restricted import BLinearRestricted as BLinear
 
 
-class BNNFull(torch.nn.Module):
+class BNN(torch.nn.Module):
     """
     Bayesian neural network, inherits torch module.
 
@@ -88,7 +88,7 @@ class BNNFull(torch.nn.Module):
         # otherwise loop over hidden layers
         layers = torch.nn.ModuleList([])
         if Nh == 0:
-            layers.append(BLinearFull(Ni, No, **blargs))
+            layers.append(BLinear(Ni, No, **blargs))
 
         else:
 
@@ -105,16 +105,16 @@ class BNNFull(torch.nn.Module):
                 Nu = [Nu for _ in range(Nh)]
 
             # input layer
-            layers.append(BLinearFull(Ni, Nu[0], **blargs))
+            layers.append(BLinear(Ni, Nu[0], **blargs))
             layers.append(self.act_fn(**self.act_kwargs))
 
             # interior layers
             for i in range(Nh - 1):
-                layers.append(BLinearFull(Nu[i], Nu[i + 1], **blargs))
+                layers.append(BLinear(Nu[i], Nu[i + 1], **blargs))
                 layers.append(self.act_fn(**self.act_kwargs))
 
             # output layer
-            layers.append(BLinearFull(Nu[-1], No, **blargs))
+            layers.append(BLinear(Nu[-1], No, **blargs))
 
         return layers
 
@@ -135,12 +135,32 @@ class BNNFull(torch.nn.Module):
             Network outputs.
 
         """
-        # tile x so shape (N_batch, N_in) -> (N_batch, N_samples, N_in)
-        y = x[:, None].tile((1, N_samples, 1))
+        # tile x so shape (N_batch, N_in) -> (N_samples, N_batch, N_in)
+        y = x[None].tile((N_samples, 1, 1))
 
         # iterate through layers
         for layer in self.layers:
-            y = layer(y)
+            if type(layer) == BLinear:
+                y = layer(y, N_samples)
+            else:
+                y = layer(y)
+        return y
+
+    def predict(self, x):
+        """Batch generate single independent predictions for x."""
+        # unsqueeze x so shape (N_batch, N_in) -> (N_batch, 1, N_in)
+        y = x[:, None]
+        N_samples = x.shape[0]
+
+        # iterate through layers
+        for layer in self.layers:
+            if type(layer) == BLinear:
+                y = layer(y, N_samples)
+            else:
+                y = layer(y)
+
+        # re-squeeze
+        y = y.reshape(N_samples, self.N_out)
         return y
 
     def calc_loss(self, x, y, N_samples):
@@ -194,17 +214,15 @@ class BNNFull(torch.nn.Module):
         y_pred = self(x, N_samples)
 
         # kernel bandwidth
-        h = 0.6 * torch.std(y_pred, dim=1) * np.power(N_samples, -0.2)
-        h = h[:, None]
+        h = 0.6 * torch.std(y_pred, dim=0) * np.power(N_samples, -0.2)
 
         # evaluate kernel pdf
-        sech2 = 1 / (4 * h * torch.cosh(0.5 * (y[:, None] - y_pred) / h)**2)
-        kernel = torch.sum(sech2, axis=1) / N_samples
+        sech2 = 1 / (4 * h * torch.cosh(0.5 * (y[None] - y_pred) / h)**2)
+        kernel = torch.sum(sech2, axis=0) / N_samples
         lnkernel = torch.log(kernel)
 
         # loss
         loss = -torch.sum(lnkernel) / len(y)
-
         return loss
 
     def save(self, fname):

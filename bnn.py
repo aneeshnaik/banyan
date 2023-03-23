@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Bayesian neural network.
+SUMMARY.
 
-Created: March 2022
+Created: MONTH YEAR
 Author: A. P. Naik
 """
 import numpy as np
@@ -135,32 +135,12 @@ class BNN(torch.nn.Module):
             Network outputs.
 
         """
-        # tile x so shape (N_batch, N_in) -> (N_samples, N_batch, N_in)
-        y = x[None].tile((N_samples, 1, 1))
+        # tile x so shape (N_batch, N_in) -> (N_batch, N_samples, N_in)
+        y = x[:, None].tile((1, N_samples, 1))
 
         # iterate through layers
         for layer in self.layers:
-            if type(layer) == BLinear:
-                y = layer(y, N_samples)
-            else:
-                y = layer(y)
-        return y
-
-    def predict(self, x):
-        """Batch generate single independent predictions for x."""
-        # unsqueeze x so shape (N_batch, N_in) -> (N_batch, 1, N_in)
-        y = x[:, None]
-        N_samples = x.shape[0]
-
-        # iterate through layers
-        for layer in self.layers:
-            if type(layer) == BLinear:
-                y = layer(y, N_samples)
-            else:
-                y = layer(y)
-
-        # re-squeeze
-        y = y.reshape(N_samples, self.N_out)
+            y = layer(y)
         return y
 
     def calc_loss(self, x, y, N_samples):
@@ -214,15 +194,17 @@ class BNN(torch.nn.Module):
         y_pred = self(x, N_samples)
 
         # kernel bandwidth
-        h = 0.6 * torch.std(y_pred, dim=0) * np.power(N_samples, -0.2)
+        h = 0.6 * torch.std(y_pred, dim=1) * np.power(N_samples, -0.2)
+        h = h[:, None]
 
         # evaluate kernel pdf
-        sech2 = 1 / (4 * h * torch.cosh(0.5 * (y[None] - y_pred) / h)**2)
-        kernel = torch.sum(sech2, axis=0) / N_samples
+        sech2 = 1 / (4 * h * torch.cosh(0.5 * (y[:, None] - y_pred) / h)**2)
+        kernel = torch.sum(sech2, axis=1) / N_samples
         lnkernel = torch.log(kernel)
 
         # loss
         loss = -torch.sum(lnkernel) / len(y)
+
         return loss
 
     def save(self, fname):

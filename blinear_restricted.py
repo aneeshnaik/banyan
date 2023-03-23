@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-SUMMARY.
+Bayesian linear layer.
 
-Created: MONTH YEAR
+Created: March 2022
 Author: A. P. Naik
 """
 import numpy as np
 import torch
 
 
-class BLinearFull(torch.nn.Module):
+class BLinearRestricted(torch.nn.Module):
     """
     Bayesian linear layer, inherits torch.nn.Module.
 
@@ -52,35 +52,17 @@ class BLinearFull(torch.nn.Module):
 
         return
 
-    def forward(self, x):
-        """Forward pass through layer.
-
-        Parameters
-        ----------
-        x : torch.Tensor, shape (N_batch, N_samples, N_in)
-            Input data. Note expected shape!
-
-        Returns
-        -------
-        y : torch.Tensor, shape (N_batch, N_samples, N_out)
-            Network outputs.
-
-        """
-
-        # infer batch and sample size
-        Nb = x.shape[0]
-        Ns = x.shape[1]
-
+    def forward(self, x, N_samples):
+        """Forward pass through layer."""
         # sample weights and biases
         dev = self.w_mu.device
-        r1 = torch.randn((Nb, Ns, self.N_out, self.N_in), device=dev)
-        r2 = torch.randn((Nb, Ns, self.N_out), device=dev)
+        r1 = torch.randn((N_samples, self.N_out, self.N_in), device=dev)
+        r2 = torch.randn((N_samples, self.N_out), device=dev)
         w = self.w_mu + torch.exp(self.w_lsigma) * r1
         b = self.b_mu + torch.exp(self.b_lsigma) * r2
 
         # y = Wx + b
-        y = torch.sum(w * x[:, :, None], dim=-1) + b
-
+        y = torch.matmul(x, torch.transpose(w, -1, -2)) + b[:, None]
         return y
 
     def extra_repr(self):
