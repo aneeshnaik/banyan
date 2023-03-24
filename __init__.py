@@ -7,6 +7,6 @@ Created: July 2022
 Author: A. P. Naik
 """
 from .bnn import BNN
-from .bnn_full import BNNFull
+from .blinear import BLinear
 
-__all__ = ['BNN', 'BNNFull']
+__all__ = ['BNN', 'BLinear']
