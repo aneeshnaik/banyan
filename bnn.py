@@ -144,51 +144,7 @@ class BNN(torch.nn.Module):
         return y
 
     def calc_loss(self, x, y, N_samples):
-        r"""
-        Logistic kernel density loss, comparing model(x) with labels y.
 
-        NOTE: CURRENTLY ONLY IMPLEMENTED FOR 1D OUTPUT, I.E. self.N_out = 1.
-
-        Given input data :math:`x` (batch size :math:`N`) with *true* outputs
-        :math:`\hat{y}`, the loss is calculated by generating many
-        (:math:`N_\mathrm{samples}`) predictions :math:`y_{i, j}` for each data
-        point :math:`i`. These predictions are then smoothed into a
-        probability distribution via logistic kernel density estimation. The
-        loss :math:`\mathcal{L}` is then the negative log-probability of the
-        true outputs given this probability distribution:
-
-        .. math::
-            \mathcal{L} = -\frac{1}{N} \sum_i^N \ln \left[
-            \frac{1}{N_\mathrm{samples}} \sum_j^{N_\mathrm{samples}}
-            \frac{1}{4h_i} \mathrm{sech}^2
-            \left(\frac{\hat{y}_i - y_{i, j}}{2 h_i}\right)\right],
-
-        where the index :math:`i` is summing over the datapoints in the batch
-        and index :math:`j` is summing over the samples for each data point.
-        :math:`h_i` is the kernel bandwidth for data point :math:`i`.
-        This is given by
-
-        .. math::
-            h_i = 0.6 \sigma_i N^{-1/5},
-
-        where :math:`\sigma` is the standard deviation of the predictions
-        :math:`y_{i, j}` for data point :math:`i`.
-
-        Parameters
-        ----------
-        x : torch Tensor, shape (self.N_in) or (N_batch, self.N_in)
-            Input data.
-        y : torch Tensor, shape (self.N_out) or (N_batch, self.N_out)
-            Labels for input data.
-        N_samples : int, optional
-            Number of samples to network samples to take (see maths above).
-
-        Returns
-        -------
-        loss : torch Tensor, 0-dimensional
-            Logistic kernel density loss.
-
-        """
 
         # generate predictions
         y_pred = self(x, N_samples)

@@ -8,5 +8,7 @@ Author: A. P. Naik
 """
 from .bnn import BNN
 from .blinear import BLinear
+from .bloss import BLoss
 
-__all__ = ['BNN', 'BLinear']
+
+__all__ = ['BNN', 'BLinear', 'BLoss']
