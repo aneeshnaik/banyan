@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-SUMMARY.
+Bayesian neural network.
 
-Created: MONTH YEAR
+Created: July 2022
 Author: A. P. Naik
 """
-import numpy as np
 import torch
 from .blinear import BLinear
 
@@ -20,8 +19,7 @@ class BNN(torch.nn.Module):
     N_in : int
         Number of inputs.
     N_out : int
-        Number of outputs. NOTE: ONLY 1D OUTPUT (N_out=1) CURRENTLY
-        IMPLEMENTED.
+        Number of outputs.
     sigma_initial : float, optional
         Initial distribution widths for all weights and biases. The default is
         0.1.
@@ -71,6 +69,7 @@ class BNN(torch.nn.Module):
         return
 
     def __construct_network(self):
+        """Construct sequence of BLinear layers and activation functions."""
 
         # convenience variables
         Nh = self.N_hidden
@@ -131,7 +130,7 @@ class BNN(torch.nn.Module):
 
         Returns
         -------
-        y : torch.Tensor, shape (N_samples, N_batch, N_out)
+        y : torch.Tensor, shape (N_batch, N_samples, N_out)
             Network outputs.
 
         """
@@ -142,26 +141,6 @@ class BNN(torch.nn.Module):
         for layer in self.layers:
             y = layer(y)
         return y
-
-    def calc_loss(self, x, y, N_samples):
-
-
-        # generate predictions
-        y_pred = self(x, N_samples)
-
-        # kernel bandwidth
-        h = 0.6 * torch.std(y_pred, dim=1) * np.power(N_samples, -0.2)
-        h = h[:, None]
-
-        # evaluate kernel pdf
-        sech2 = 1 / (4 * h * torch.cosh(0.5 * (y[:, None] - y_pred) / h)**2)
-        kernel = torch.sum(sech2, axis=1) / N_samples
-        lnkernel = torch.log(kernel)
-
-        # loss
-        loss = -torch.sum(lnkernel) / len(y)
-
-        return loss
 
     def save(self, fname):
         """Save model state_dict at fname."""

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-SUMMARY.
+Bayesian linear layer. Weights and biases randomly sampled each forward pass.
 
-Created: MONTH YEAR
+Created: July 2022
 Author: A. P. Naik
 """
 import numpy as np
@@ -53,7 +53,8 @@ class BLinear(torch.nn.Module):
         return
 
     def forward(self, x):
-        """Forward pass through layer.
+        """
+        Forward pass through layer. Note expected shape of input.
 
         Parameters
         ----------
